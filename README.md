@@ -1,4 +1,3 @@
 # DantzigWolfeOptim
-Dantzig-Wolfe family of decomposition and reformulation algorithm to solve MILP
 
-
+Dantzig-Wolfe Decomposition is a technique originally presented in (Dantzig and Wolfe, 1960) as a means to speed up and parallelize the solution of Linear Programs. The technique, as originally defined, works in two steps by first reformulating an original LP into a form that lends itself well to column generation and then in the second step solving the reformulated LP using delayed column generation. In this text I will and use the term Dantzig-Wolfe Decomposition to refer to the two step process in its entirety. When referring to the first step in isolation I will use the term Dantzig-Wolfe Reformulation. The second step will be referred to as Dantzig-Wolfe Column Generation.
