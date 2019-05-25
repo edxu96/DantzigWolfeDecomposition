@@ -13,9 +13,9 @@ include("FuncMas.jl")
 ########################################################################################################################
 
 
-function addColToMaster(mod_mas::JuMP.Model, mod_sub::ModelSub, vec_x_result, vec_consRef, consConvex)
-    (m, n) = size(mod_sub.mat_e)
-    A0x = mod_sub.mat_e * vec_x_result
+function addColToMaster(mod_mas::JuMP.Model, modSub::ModelSub, vec_x_result, vec_consRef, consConvex)
+    (m, n) = size(modSub.mat_e)
+    A0x = modSub.mat_e * vec_x_result
     vec_consTouched = ConstraintRef[]
     vals = Float64[]
     for i = 1: m
@@ -28,7 +28,7 @@ function addColToMaster(mod_mas::JuMP.Model, mod_sub::ModelSub, vec_x_result, ve
     # add variable to convexity constraint.
     push!(vec_consTouched, consConvex)
     push!(vals, 1)
-    objCoef = sum(mod_sub.vec_l[j] * vec_x_result[j] for j = 1: n)
+    objCoef = sum(modSub.vec_l[j] * vec_x_result[j] for j = 1: n)
     println("objCoef = $objCoef.")
     @variable(
         mod_mas,
