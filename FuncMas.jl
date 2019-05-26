@@ -5,7 +5,9 @@
 ########################################################################################################################
 
 
-function setModelMas(numQ, vecP, numSub, vecSenseP, dualPen, vecDualGuessPi, vecDualGuessKappa)
+function setModelMas(numQ, vecP, numSub, vecSenseP, dualPen)
+    vecDualGuessPi = 100 * ones(Float64, numQ)
+    vecDualGuessKappa = 0 * ones(Float64, numSub)
     ## X1: initial matrix of extreme points
     modMas = Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env))
     K = 1

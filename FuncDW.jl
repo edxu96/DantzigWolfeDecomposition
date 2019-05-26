@@ -1,15 +1,16 @@
 
 
-function doDantzigWolfeDecomp(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, vecStrNameVar, epsilon,
-    whePrint, indexSub, dualPen, dualPenMult, dualPenThreshold, vecDualGuessPi, vecDualGuessKappa, vecMuMinus, vecMuPlus,
-    vecMuMinusConv, vecMuPlusConv, vecObjCoef)
+function doOptim(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, dualPen,
+    dualPenMult, dualPenThreshold, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv, epsilon, whePrint)
+    ## Initialize
     numQ = size(vecModelSub[1].mat_e)[1]  # [num of constraints in matA_0]
     numSub = length(vecModelSub)
     extremePoints = [[]]
     extremePointForSub = [-1]
-    ##
+    vecObjCoef = [-1000.0]
     wheDoneStab = false
     iter = 1
+    ##
     while !wheDoneStab
         vecPi = []
         vecKappa = []
@@ -51,7 +52,7 @@ function doDantzigWolfeDecomp(vecModelSub, modMas, vecConsRef, vecConsConvex, ve
         end
         ## See whether we should update stabilization parameters.
         if dualPen > 0
-            print("Updating dual penalty. old value = $dualPen, ")
+            print("Updating dual penalty. old value = $(dualPen), ")
             dualPen *= dualPenMult
             if dualPen < dualPenThreshold
                 dualPen = 0
@@ -68,21 +69,37 @@ function doDantzigWolfeDecomp(vecModelSub, modMas, vecConsRef, vecConsConvex, ve
         end
     end
     ## 5,  Print the Result
-    println("################################################################################\n", ######################
-            "Optimization Done After $(iter-1) Iterations.\n",
-            "objMaster = $(getobjectivevalue(modMas))\n",
-            "################################################################################")
+    println("Optimization Done After $(iter-1) Iterations.\n",
+            "objMaster = $(getobjectivevalue(modMas))")
+    vecLambdaResult = getvalue(vecLambda)
+    return (vecLambdaResult, extremePointForSub, extremePoints)
+end
+
+
+function getStrNameVar(numSub, numXPerSub)
+    vecStrNameVar = Vector{String}(undef, numSub * numXPerSub)
+    idx = 1
+    for i = 1:numSub
+        for j = 1:numXPerSub
+            vecStrNameVar[idx] = "x_($i, $j)"
+            idx += 1
+        end
+    end
+    return vecStrNameVar
+end
+
+
+function printResult(vecStrNameVar, indexSub, vecLambda, vecLambdaResult, extremePointForSub, extremePoints)
     # compute values of original variables
     origVarValSub = []
     for s = 1: length(indexSub)
         push!(origVarValSub, zeros(length(indexSub[s])))
     end
-    vec_lambda_result = getvalue(vecLambda)
-    for p = 1: length(vec_lambda_result)
-        if vec_lambda_result[p] > 0.000001
-            println("lambda_$p = ", vec_lambda_result[p], ", sub = $(extremePointForSub[p]), \n",
+    for p = 1: length(vecLambdaResult)
+        if vecLambdaResult[p] > 0.000001
+            println("lambda_$p = ", vecLambdaResult[p], ", sub = $(extremePointForSub[p]), \n",
                     "extreme point = $(extremePoints[p]).")
-            origVarValSub[extremePointForSub[p]] += vec_lambda_result[p] * extremePoints[p]
+            origVarValSub[extremePointForSub[p]] += vecLambdaResult[p] * extremePoints[p]
         end
     end
     for s = 1: length(indexSub)
@@ -93,4 +110,29 @@ function doDantzigWolfeDecomp(vecModelSub, modMas, vecConsRef, vecConsConvex, ve
             end
         end
     end
+end
+
+
+function doDWDecomp(mat_a, vec_b, vec_c, vecSenseAll, indexMas, blocks, indexSub, numXPerSub,
+        dualPen, dualPenMult, dualPenThreshold, epsilon, whePrint::Bool)
+    println("#### 2/5,  Set vecModelSub #####################################################") ########################
+    vecModelSub = setModelSub(mat_a, vec_b, vec_c, vecSenseAll, indexMas, blocks, indexSub)
+    numSub = length(vecModelSub)
+    numQ = size(vecModelSub[1].mat_e)[1]  # [num of constraints in matA_0]
+    vecStrNameVar = getStrNameVar(numSub, numXPerSub)  # define variable names
+    println("#### 3/5,  Set modelMas ########################################################") ########################
+    vecSenseP = deepcopy(vecSenseAll[collect(indexMas)])
+    vecP = deepcopy(vec_b[collect(indexMas)])
+    (modMas, vecConsRef, vecConsConvex, vecLambda, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv) =
+        setModelMas(numQ, vecP, numSub, vecSenseP, dualPen)
+    ## 5,  Optimization
+    println("#### 4/5,  Begin Optim #########################################################") ########################
+    (vecLambdaResult, extremePointForSub, extremePoints) = doOptim(
+        vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda,                                     # Para for ColGen
+        dualPen, dualPenMult, dualPenThreshold, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv,  # Para for Stable
+        epsilon, whePrint
+        )
+    println("#### 5/5,  Print Result ########################################################") ########################
+    printResult(vecStrNameVar, indexSub, vecLambda, vecLambdaResult, extremePointForSub, extremePoints)
+    println("################################################################################")
 end

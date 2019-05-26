@@ -1,7 +1,7 @@
 # Dantzig-Wolfe Reformulation and Column Generation
 # Functions for Sub-Problem
 # Edward J. Xu
-# 2019.5.25
+# 2019.5.26
 ########################################################################################################################
 
 
@@ -58,6 +58,11 @@ function setModelSub(mat_a, vec_b, vec_c, vecSense, indexMas, blocks, indexSub)
             0,                                                            # vec_x
             deepcopy(vecSense[blocks[k]])                                 # vecSense
             )
+    end
+    # vecModelSub = setBranch(vecModelSub, 1, 2)
+    for k = 1:numSub
+        vecModelSub[k].vec_x = setVariableSub(vecModelSub[k].mod, vecModelSub[k].mat_d, vecModelSub[k].vec_q,
+            vecModelSub[k].vecSense)
     end
     return vecModelSub
 end

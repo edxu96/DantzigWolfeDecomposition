@@ -1,3 +1,8 @@
+# Dantzig-Wolfe Reformulation and Column Generation
+# Functions for Master Problem
+# Edward J. Xu
+# 2019.5.26
+########################################################################################################################
 
 
 function updateStabInfo(modMas, objCoef, vecLambda, numQ, numSub, dualPen, vecDualGuessPi, vecDualGuessKappa,

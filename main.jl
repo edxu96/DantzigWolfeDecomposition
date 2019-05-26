@@ -21,51 +21,28 @@ include("FuncStab.jl")
 ########################################################################################################################
 
 
-function main(strFileName::String, series::Int64, whePrint::Bool)
-    strFileName = "data/gapa.txt"
-    series = 1
+function main(strFileName::String, series::Int64)
     timeStart = time()
-    epsilon = 0.00001
     global gurobi_env = Gurobi.Env()
-    println("#### 1/5,  Read Data ###########################################################") ########################
-    (w, p, c) = readData(strFileName, series)
-    (modAll, numXPerSub, blocks) = setGAPModel(w, p, c)
-    println("#### 2/5,  Get Index ###########################################################") ########################
-    (mat_a, vec_b, vec_c, vecSense) = getMat(modAll)
-    (indexMas, indexSub) = getIndex(mat_a, blocks)
-    println("#### 3/5,  Set vecModelSub #####################################################") ########################
-    vecModelSub = setModelSub(mat_a, vec_b, vec_c, vecSense, indexMas, blocks, indexSub)
-    numSub = length(vecModelSub)
-    numQ = size(vecModelSub[1].mat_e)[1]  # [num of constraints in matA_0]
-    # vecModelSub = setBranch(vecModelSub, 1, 2)
-    for k = 1:numSub
-        vecModelSub[k].vec_x = setVariableSub(vecModelSub[k].mod, vecModelSub[k].mat_d, vecModelSub[k].vec_q,
-            vecModelSub[k].vecSense)
-    end
-    vecStrNameVar = getStrNameVar(numSub, numXPerSub)  # define variable names
-    println("#### 4/5,  Set modelMas ########################################################") ########################
-    ## Parameters for stabilization
-    vecDualGuessPi = 100 * ones(Float64, numQ)
-    vecDualGuessKappa = 0 * ones(Float64, numSub)
+    println("#### 1/5,  Prepare Data ########################################################") ########################
+    (mat_a, vec_b, vec_c, vecSenseAll, indexMas, blocks, indexSub, numXPerSub) = setGeneralAssignProbDate(
+        strFileName, series)
+    ## Set parameter and start DW-Decomposition
     dualPen = 10
     dualPenMult = 0.1
     dualPenThreshold = 0.01 - 1e-5
-    ##
-    vecSenseP = deepcopy(vecSense[collect(indexMas)])
-    vecP = deepcopy(vec_b[collect(indexMas)])
-    (modMas, vecConsRef, vecConsConvex, vecLambda, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv) =
-        setModelMas(numQ, vecP, numSub, vecSenseP, dualPen, vecDualGuessPi, vecDualGuessKappa)
-    vecObjCoef = [-1000.0]
-    ## 5,  Optimization
-    println("#### 5/5,  Begin Optim #########################################################") ########################
-    doDantzigWolfeDecomp(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, vecStrNameVar, epsilon, whePrint,
-        indexSub, dualPen, dualPenMult, dualPenThreshold, vecDualGuessPi, vecDualGuessKappa, vecMuMinus, vecMuPlus,
-        vecMuMinusConv, vecMuPlusConv, vecObjCoef)
-    println("################################################################################\n",
-            "Elapsed time is $(time() - timeStart) seconds.\n",
+    epsilon = 0.00001
+    whePrint = false
+    doDWDecomp(
+        mat_a, vec_b, vec_c,                                  # Data in LP Problem
+        vecSenseAll, indexMas, blocks, indexSub, numXPerSub,  # Data for DW-Decomp
+        dualPen, dualPenMult, dualPenThreshold,               # Para for Stable
+        epsilon, whePrint                                     # Control Para
+        )
+    println("Elapsed time is $(time() - timeStart) seconds.\n",
             "################################################################################")
 end
 
 
 @enum Sense leq = 1 geq = 2 eq = 3
-main("data/gapa.txt", 1, false)
+main("Data/gapa.txt", 1)
