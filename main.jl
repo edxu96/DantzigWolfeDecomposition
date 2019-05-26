@@ -17,6 +17,7 @@ include("FuncMas.jl")
 include("FuncDW.jl")
 include("FuncData.jl")
 include("FuncProcess.jl")
+include("FuncStab.jl")
 ########################################################################################################################
 
 
@@ -35,6 +36,7 @@ function main(strFileName::String, series::Int64, whePrint::Bool)
     println("#### 3/5,  Set vecModelSub #####################################################") ########################
     vecModelSub = setModelSub(mat_a, vec_b, vec_c, vecSense, indexMas, blocks, indexSub)
     numSub = length(vecModelSub)
+    numQ = size(vecModelSub[1].mat_e)[1]  # [num of constraints in matA_0]
     # vecModelSub = setBranch(vecModelSub, 1, 2)
     for k = 1:numSub
         vecModelSub[k].vec_x = setVariableSub(vecModelSub[k].mod, vecModelSub[k].mat_d, vecModelSub[k].vec_q,
@@ -42,14 +44,23 @@ function main(strFileName::String, series::Int64, whePrint::Bool)
     end
     vecStrNameVar = getStrNameVar(numSub, numXPerSub)  # define variable names
     println("#### 4/5,  Set modelMas ########################################################") ########################
+    ## Parameters for stabilization
+    vecDualGuessPi = 100 * ones(Float64, numQ)
+    vecDualGuessKappa = 0 * ones(Float64, numSub)
+    dualPen = 10
+    dualPenMult = 0.1
+    dualPenThreshold = 0.01 - 1e-5
+    ##
     vecSenseP = deepcopy(vecSense[collect(indexMas)])
     vecP = deepcopy(vec_b[collect(indexMas)])
-    numQ = size(vecModelSub[1].mat_e)[1]  # [num of constraints in matA_0]
-    (modMas, vecConsRef, vecConsConvex, vecLambda) = setModelMas(numQ, vecP, numSub, vecSenseP)
+    (modMas, vecConsRef, vecConsConvex, vecLambda, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv) =
+        setModelMas(numQ, vecP, numSub, vecSenseP, dualPen, vecDualGuessPi, vecDualGuessKappa)
+    vecObjCoef = [-1000.0]
     ## 5,  Optimization
     println("#### 5/5,  Begin Optim #########################################################") ########################
-    doDantzigWolfeDecomp(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda,
-        vecStrNameVar, epsilon, whePrint, indexSub)
+    doDantzigWolfeDecomp(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, vecStrNameVar, epsilon, whePrint,
+        indexSub, dualPen, dualPenMult, dualPenThreshold, vecDualGuessPi, vecDualGuessKappa, vecMuMinus, vecMuPlus,
+        vecMuMinusConv, vecMuPlusConv, vecObjCoef)
     println("################################################################################\n",
             "Elapsed time is $(time() - timeStart) seconds.\n",
             "################################################################################")

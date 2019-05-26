@@ -5,39 +5,51 @@
 ########################################################################################################################
 
 
-function setModelMas(numQ, vecP, numSub, vecSenseP)
+function setModelMas(numQ, vecP, numSub, vecSenseP, dualPen, vecDualGuessPi, vecDualGuessKappa)
     ## X1: initial matrix of extreme points
     modMas = Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env))
     K = 1
     # In this case we do not use a starting set of extreme points.
     # we just use a dummy starting column
-    @variable(modMas, vecLambda[1: K] >= 0 )
+    @variable(modMas, vecLambda[1:K] >= 0 )
+    @variable(modMas, 0 <= vecMuMinus[1:numQ] <= dualPen)
+    @variable(modMas, - dualPen <= vecMuPlus[1:numQ] <= 0)
+    @variable(modMas, 0 <= vecMuMinusConv[1:numSub] <= dualPen)
+    @variable(modMas, - dualPen <= vecMuPlusConv[1:numSub] <= 0)
     # Remember to consider if we need to maximize or minimize
-    @objective(modMas, Max, sum(- 1000 * vecLambda[j] for j = 1: K) )
+    @objective(
+        modMas, Max, sum(- 1000 * vecLambda[j] for j = 1:K) +
+        sum(vecDualGuessPi[i] * (vecMuMinus[i] + vecMuPlus[i]) for i = 1:numQ) +
+        sum(vecDualGuessKappa[k] * (vecMuMinusConv[k] + vecMuPlusConv[k]) for k=1:numSub)
+        )
     # @constraint(modMas, vecConsRef[i = 1: numQ], sum(vecP[i] * vecLambda[j] for j = 1:K) == vecP[i])
     JuMPConstraintRef = JuMP.ConstraintRef{Model, JuMP.GenericRangeConstraint{JuMP.GenericAffExpr{Float64,Variable}}}
     vecConsRef = Vector{JuMPConstraintRef}(undef, numQ)
     for i = 1:numQ
         if vecSenseP[i] == leq
-            vecConsRef[i] = @constraint(modMas, sum(vecP[i] * vecLambda[j] for j = 1:K) <= vecP[i])
+            vecConsRef[i] = @constraint(modMas, sum(vecP[i] * vecLambda[j] for j = 1:K) +
+                vecMuMinus[i] + vecMuPlus[i] <= vecP[i])
         elseif vecSenseP[i] == geq
-            vecConsRef[i] = @constraint(modMas, sum(vecP[i] * vecLambda[j] for j = 1:K) >= vecP[i])
+            vecConsRef[i] = @constraint(modMas, sum(vecP[i] * vecLambda[j] for j = 1:K) +
+                vecMuMinus[i] + vecMuPlus[i] >= vecP[i])
         else
-            vecConsRef[i] = @constraint(modMas, sum(vecP[i] * vecLambda[j] for j = 1:K) == vecP[i])
+            vecConsRef[i] = @constraint(modMas, sum(vecP[i] * vecLambda[j] for j = 1:K) +
+                vecMuMinus[i] + vecMuPlus[i] == vecP[i])
         end
     end
-    @constraint(modMas, vecConsConvex[k = 1: numSub], sum(vecLambda[j] for j = 1: K) == 1)
-    return (modMas, vecConsRef, vecConsConvex, vecLambda)
+    @constraint(modMas, vecConsConvex[k = 1: numSub], sum(vecLambda[j] for j = 1: K) +
+        vecMuMinusConv[k] + vecMuPlusConv[k] == 1)
+    return (modMas, vecConsRef, vecConsConvex, vecLambda, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv)
 end
 
 
-function addColToMaster(modMas::JuMP.Model, modSub::ModelSub, vec_x_result, vecConsRef, consConvex)
+function addColToMas(modMas::JuMP.Model, modSub::ModelSub, vec_x_result, vecConsRef, consConvex)
     (m, n) = size(modSub.mat_e)
     A0x = modSub.mat_e * vec_x_result
     vecConsTouched = ConstraintRef[]
     vals = Float64[]
     for i = 1: m
-        # only insert non-zero elements (this saves memory and may make the master problem easier to solve)
+        # only insert non-zero elements (this saves memory and may make the modMas problem easier to solve)
         if A0x[i] != 0
             push!(vecConsTouched, vecConsRef[i])
             push!(vals, A0x[i])
@@ -46,29 +58,29 @@ function addColToMaster(modMas::JuMP.Model, modSub::ModelSub, vec_x_result, vecC
     # add variable to convexity constraint.
     push!(vecConsTouched, consConvex)
     push!(vals, 1)
-    objCoef = sum(modSub.vec_l[j] * vec_x_result[j] for j = 1: n)
-    println("objCoef = $objCoef.")
+    objCoefNew = sum(modSub.vec_l[j] * vec_x_result[j] for j = 1: n)
+    println("objCoefNew = $(objCoefNew).")
     @variable(
         modMas,
         lambdaNew >= 0,                     # New variable to be added
-        objective = objCoef,                # cost coefficient of new varaible in the objective
-        inconstraints = vecConsTouched,    # constraints to be modified
+        objective = objCoefNew,             # cost coefficient of new varaible in the objective
+        inconstraints = vecConsTouched,     # constraints to be modified
         coefficients = vals                 # the coefficients of the variable in those constraints
         )
-    return lambdaNew
+    return (lambdaNew, objCoefNew)
 end
 
 
 function solveMas(modMas, vecConsRef, vecConsConvex)
     status = solve(modMas)
     if status != :Optimal
-        throw("Error: Non-optimal master-problem status")
+        throw("Error: Non-optimal modMas-problem status")
     end
-    vec_pi = getdual(vecConsRef)
-    vec_kappa = getdual(vecConsConvex)
+    vecPi = getdual(vecConsRef)
+    vecKappa = getdual(vecConsConvex)
     obj_master = getobjectivevalue(modMas)
-    ## ensure that vec_pi and vec_kappa are row vectors
-    vec_pi = reshape(vec_pi, 1, length(vec_pi))
-    vec_kappa = reshape(vec_kappa, 1, length(vec_kappa))
-    return (vec_pi, vec_kappa, obj_master)
+    ## ensure that vecPi and vecKappa are row vectors
+    vecPi = reshape(vecPi, 1, length(vecPi))
+    vecKappa = reshape(vecKappa, 1, length(vecKappa))
+    return (vecPi, vecKappa, obj_master)
 end

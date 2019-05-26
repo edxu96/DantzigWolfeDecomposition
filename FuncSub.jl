@@ -63,9 +63,9 @@ function setModelSub(mat_a, vec_b, vec_c, vecSense, indexMas, blocks, indexSub)
 end
 
 
-function solveSub(modSub::ModelSub, vec_pi, kappa)
+function solveSub(modSub::ModelSub, vecPi, kappa)
     (m, n) = size(modSub.mat_e)
-    piA0 = vec_pi * modSub.mat_e
+    piA0 = vecPi * modSub.mat_e
     @objective(modSub.mod, Max, sum(modSub.vec_l[j] * modSub.vec_x[j] for j = 1: n) -
         sum(piA0[1, j] * modSub.vec_x[j] for j = 1: n) - kappa)
     status = solve(modSub.mod)

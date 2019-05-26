@@ -5,7 +5,7 @@ function getStrNameVar(numSub, numXPerSub)
     idx = 1
     for i = 1:numSub
         for j = 1:numXPerSub
-            vecStrNameVar[idx] = "x$i.$j"
+            vecStrNameVar[idx] = "x_($i, $j)"
             idx += 1
         end
     end
