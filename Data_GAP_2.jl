@@ -19,21 +19,13 @@ function getData()
         zeros(1,45) 6 7 9 9 3 5 2 1 5 5 4 4 6 2 1
         ]
     vec_b = hcat([ones(15,1); 22.0; 18.0; 18.0; 19.0])
-    index_sub = [collect(1: 15), collect(16: 30), collect(31: 45), collect(46: 60)]
-    num_sub = 4
+    indexSub = [collect(1: 15), collect(16: 30), collect(31: 45), collect(46: 60)]
+    numSub = 4
     num_x_sub = 15
     num_border = 15
     #
-    vecStr_nameVar = Vector{String}(undef, length(vec_c))
-    idx = 1
-    for i = 1: num_sub
-        for j = 1: num_x_sub
-            vecStr_nameVar[idx] = "x_{$(i),$(j)}"
-            idx += 1
-        end
-    end
-    return (vec_c, mat_a, vec_b, index_sub, num_sub, num_x_sub, num_border, vecStr_nameVar)
+    return (vec_c, mat_a, vec_b, indexSub, numSub, num_x_sub, num_border, vecStrNameVar)
 end
 
 
-(vec_c, mat_a, vec_b, index_sub, num_sub, num_x_sub, num_border, vecStr_nameVar) = getData()
+(vec_c, mat_a, vec_b, indexSub, numSub, num_x_sub, num_border, vecStrNameVar) = getData()

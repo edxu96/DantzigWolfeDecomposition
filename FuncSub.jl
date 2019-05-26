@@ -12,16 +12,24 @@ mutable struct ModelSub
     mat_d
     vec_q
     vec_x
+    vecSense
 end
 
 
-function setVariableSub(modSub::JuMP.Model, mat_d, vec_q)
+function setVariableSub(modSub::JuMP.Model, mat_d, vec_q, vecSense)
     (m_d, n_d) = size(mat_d)
     @variable(modSub, vec_x[1: n_d] >= 0, Bin)
-    # objective is not here. We define once dual variables become known
     @objective(modSub, Max, 0)
-    # remember to change "<=" if your sub-problem uses a different type of constraints!
-    @constraint(modSub, cons[i = 1: m_d], sum(mat_d[i, j] * vec_x[j] for j = 1: n_d) <= vec_q[i])
+    # @constraint(modSub, cons[i = 1: m_d], sum(mat_d[i, j] * vec_x[j] for j = 1: n_d) <= vec_q[i])
+    for i = 1:m_d
+        if vecSense[i] == leq
+            @constraint(modSub, sum(mat_d[i, j] * vec_x[j] for j = 1:n_d) <= vec_q[i])
+        elseif vecSense[i] == geq
+            @constraint(modSub, sum(mat_d[i, j] * vec_x[j] for j = 1:n_d) >= vec_q[i])
+        else
+            @constraint(modSub, sum(mat_d[i, j] * vec_x[j] for j = 1:n_d) == vec_q[i])
+        end
+    end
     return vec_x
 end
 
@@ -37,23 +45,19 @@ function setBranch(vecModelSub, i, j)
 end
 
 
-function setModelSub(num_sub, num_border, vec_c, mat_a, vec_b)
-    vecModelSub = Vector{ModelSub}(undef, num_sub)
-    for k = 1: num_sub
+function setModelSub(mat_a, vec_b, vec_c, vecSense, indexMas, blocks, indexSub)
+    numSub = length(blocks)
+    vecModelSub = Vector{ModelSub}(undef, numSub)
+    for k = 1:numSub
         vecModelSub[k] = ModelSub(
-            Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env)),     # mod
-            mat_a[1: num_border, index_sub[k]],                           # mat_e
-            vec_c[index_sub[k]],                                          # vec_l
-            hcat(mat_a[(num_border + k), index_sub[k]])',                 # mat_d
-            vec_b[(num_border + k), 1],                                   # vec_q
-            0                                                             # vec_x
+            Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env)),     # mod     !
+            deepcopy(mat_a[collect(indexMas), indexSub[k]]),              # mat_e   <- A0
+            deepcopy(vec_c[indexSub[k]]),                                 # vec_l
+            deepcopy(mat_a[blocks[k], indexSub[k]]),                      # mat_d   <- ASub
+            deepcopy(vec_b[blocks[k]]),                                   # vec_q
+            0,                                                            # vec_x
+            deepcopy(vecSense[blocks[k]])                                 # vecSense
             )
-    end
-    # Branch
-    vecModelSub = setBranch(vecModelSub, 1, 2)
-    #
-    for k = 1: num_sub
-        vecModelSub[k].vec_x = setVariableSub(vecModelSub[k].mod, vecModelSub[k].mat_d, vecModelSub[k].vec_q)
     end
     return vecModelSub
 end
@@ -70,5 +74,5 @@ function solveSub(modSub::ModelSub, vec_pi, kappa)
     end
     costReduce = getobjectivevalue(modSub.mod)
     vec_x_result = getvalue(modSub.vec_x)
-    return (costReduce, vec_x_result), 
+    return (costReduce, vec_x_result)
 end
