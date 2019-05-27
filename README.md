@@ -17,7 +17,17 @@ DW-decomp is composed of three major parts:
 
 More detailed explanation can be found in [edxu96/DantzigWolfeDecomposition/wiki](https://github.com/edxu96/DantzigWolfeDecomposition/wiki/1-Home).
 
-## 2,  How to use
+## 2,  What can It do Right Now ?   
+
+- [x] Relaxed Mixed Integer Linear Programming Problems (Reformulation)
+    - **Input** A linear programming problem with complicating constraints.
+    - **Output** The solution of the linear programming problem obtained after using the Dantzig-Wolfe decomposition algorithm.
+- [ ] Bounded Mixed Integer Linear Programming (with Extreme Points)
+- [ ] Unbounded Mixed Integer Linear Programming (with Extreme Rays)
+
+It must be combined with an efficient branch-and-cut algorithm to solve a MILP.
+
+## 3,  How to use
 
 The code is in five files, which should be stored in your working directory:
 
@@ -69,11 +79,13 @@ using Gurobi
 
 In `Test/test.jl`, you can see the example to use `doDWDecomp` to solve Generalized Assignment Problem.
 
-## 3,  Contributions
+## 4,  Contribution
 
 Edward J. Xu is maintaining the project.
 
 It's originally inspired by Professor Stefan Røpke, DTU Management.
+
+## 5,  Reference
 
 1. Tebboth, J. R., 2001. A computational study of Dantzig-Wolfe decomposition. University of Buckingham.
 
