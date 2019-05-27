@@ -111,28 +111,3 @@ function printResult(vecStrNameVar, indexSub, vecLambda, vecLambdaResult, extrem
         end
     end
 end
-
-
-function doDWDecomp(mat_a, vec_b, vec_c, vecSenseAll, indexMas, blocks, indexSub, numXPerSub,
-        dualPen, dualPenMult, dualPenThreshold, epsilon, whePrint::Bool)
-    println("#### 2/5,  Set vecModelSub #####################################################") ########################
-    vecModelSub = setModelSub(mat_a, vec_b, vec_c, vecSenseAll, indexMas, blocks, indexSub)
-    numSub = length(vecModelSub)
-    numQ = size(vecModelSub[1].mat_e)[1]  # [num of constraints in matA_0]
-    vecStrNameVar = getStrNameVar(numSub, numXPerSub)  # define variable names
-    println("#### 3/5,  Set modelMas ########################################################") ########################
-    vecSenseP = deepcopy(vecSenseAll[collect(indexMas)])
-    vecP = deepcopy(vec_b[collect(indexMas)])
-    (modMas, vecConsRef, vecConsConvex, vecLambda, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv) =
-        setModelMas(numQ, vecP, numSub, vecSenseP, dualPen)
-    ## 5,  Optimization
-    println("#### 4/5,  Begin Optim #########################################################") ########################
-    (vecLambdaResult, extremePointForSub, extremePoints) = doOptim(
-        vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda,                                     # Para for ColGen
-        dualPen, dualPenMult, dualPenThreshold, vecMuMinus, vecMuPlus, vecMuMinusConv, vecMuPlusConv,  # Para for Stable
-        epsilon, whePrint
-        )
-    println("#### 5/5,  Print Result ########################################################") ########################
-    printResult(vecStrNameVar, indexSub, vecLambda, vecLambdaResult, extremePointForSub, extremePoints)
-    println("################################################################################")
-end

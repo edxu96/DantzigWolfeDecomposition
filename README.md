@@ -19,36 +19,62 @@ More detailed explanation can be found in [edxu96/DantzigWolfeDecomposition/wiki
 
 ## 2,  How to use
 
-The code is in four files:
+The code is in five files, which should be stored in your working directory:
 
 ```
-FuncDW.jl
+DantzigWolfeDecomposition.jl
+    FuncDW.jl
     FuncSub.jl
     FuncMas.jl
     FuncStab.jl
 ```
 
-To use the function `doDWDecomp`:
+Load other necessary packages:
 
 ```Julia
+using JuMP
+using CPLEX
+using Gurobi
+using GLPKMathProgInterface
+using LinearAlgebra
+using MathProgBase
+using SparseArrays
+```
+
+There is only `doDWDecomp` in the module:
+
+```Julia
+using DantzigWolfeDecomposition
 ## Set parameter and start DW-Decomposition
 dualPen = 10
 dualPenMult = 0.1
 dualPenThreshold = 0.01 - 1e-5
-epsilon = 0.00001
-whePrint = false
+epsilon = 0.00001                # [maximum difference between two bounds]
+whePrint = false                 # [whether to print detailed info]
+whiSolver = 2                    # 1: Gurobi, 2: CPLEX, 3: GLPK
 doDWDecomp(
     mat_a, vec_b, vec_c,                                  # Data in LP Problem
     vecSenseAll, indexMas, blocks, indexSub, numXPerSub,  # Data for DW-Decomp
     dualPen, dualPenMult, dualPenThreshold,               # Para for Stable
-    epsilon, whePrint                                     # Control Para
+    epsilon, whePrint, whiSolver                          # Control Para
     )
 ```
 
-In `main.jl`, you can see the example to use `doDWDecomp` in solving Generalized Assignment Problem.
+Attention: The support for `GLPK` is not very well. The `Gurobi` solver does better than `CPLEX`. If you don't have `Gurobi` or `CPLEX`, you may need to comment out the two lines in the `DantzigWolfeDecomposition.jl` file.
+
+```Julia
+using CPLEX
+using Gurobi
+```
+
+In `Test/test.jl`, you can see the example to use `doDWDecomp` to solve Generalized Assignment Problem.
 
 ## 3,  Contributions
 
 Edward J. Xu is maintaining the project.
 
 It's originally inspired by Professor Stefan Røpke, DTU Management.
+
+1. Tebboth, J. R., 2001. A computational study of Dantzig-Wolfe decomposition. University of Buckingham.
+
+[1]: http://eaton.math.rpi.edu/CourseMaterials/PreviousSemesters/PreviousSemesters/Spring08/JM6640/tebboth.pdf

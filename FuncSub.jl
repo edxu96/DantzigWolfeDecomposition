@@ -34,26 +34,33 @@ function setVariableSub(modSub::JuMP.Model, mat_d, vec_q, vecSense)
 end
 
 
-function setBranch(vecModelSub, i, j)
-    vec_new = zeros(1, 15)
-    vec_new[j] = -1
-    vecModelSub[i].mat_d = vcat(vecModelSub[i].mat_d, vec_new)
-    vecModelSub[i].vec_q = vcat(vecModelSub[i].vec_q, [-1])
-    println(vecModelSub[i].mat_d)
-    println(vecModelSub[i].vec_q)
-    return vecModelSub
-end
+# function setBranch(vecModelSub, i, j)
+#     vec_new = zeros(1, 15)
+#     vec_new[j] = -1
+#     vecModelSub[i].mat_d = vcat(vecModelSub[i].mat_d, vec_new)
+#     vecModelSub[i].vec_q = vcat(vecModelSub[i].vec_q, [-1])
+#     println(vecModelSub[i].mat_d)
+#     println(vecModelSub[i].vec_q)
+#     return vecModelSub
+# end
 
 
-function setModelSub(mat_a, vec_b, vec_c, vecSense, indexMas, blocks, indexSub)
+function setModelSub(mat_a, vec_b, vec_c, vecSense, indexMas, blocks, indexSub, gurobi_env, whiSolver)
     numSub = length(blocks)
     vecModelSub = Vector{ModelSub}(undef, numSub)
+    if whiSolver == 1
+        modWhiSolver = Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env))
+    elseif whiSolver == 2
+        modWhiSolver = Model(solver = CplexSolver(CPX_PARAM_SCRIND=0))
+    else
+        modWhiSolver = Model(solver = GLPKSolverLP())
+    end
     for k = 1:numSub
         vecModelSub[k] = ModelSub(
-            Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env)),     # mod     !
-            deepcopy(mat_a[collect(indexMas), indexSub[k]]),              # mat_e   <- A0
+            modWhiSolver,                                                 # mod
+            deepcopy(mat_a[collect(indexMas), indexSub[k]]),              # mat_e
             deepcopy(vec_c[indexSub[k]]),                                 # vec_l
-            deepcopy(mat_a[blocks[k], indexSub[k]]),                      # mat_d   <- ASub
+            deepcopy(mat_a[blocks[k], indexSub[k]]),                      # mat_d
             deepcopy(vec_b[blocks[k]]),                                   # vec_q
             0,                                                            # vec_x
             deepcopy(vecSense[blocks[k]])                                 # vecSense
