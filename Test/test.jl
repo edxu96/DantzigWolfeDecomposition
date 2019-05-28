@@ -30,7 +30,7 @@ function main(strFileName::String, series::Int64)
     dualPenThreshold = 0.01 - 1e-5
     epsilon = 0.00001                # [maximum difference between two bounds]
     whePrint = false                 # [whether to print detailed info]
-    whiSolver = 3                    # 1: Gurobi, 2: CPLEX, 3: GLPK
+    whiSolver = 1                    # 1: Gurobi, 2: CPLEX, 3: GLPK
     doDWDecomp(
         mat_a, vec_b, vec_c,                                  # Data in LP Problem
         vecSenseAll, indexMas, blocks, indexSub, numXPerSub,  # Data for DW-Decomp
