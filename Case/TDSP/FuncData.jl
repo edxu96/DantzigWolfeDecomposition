@@ -130,3 +130,21 @@ function getCoefMatrix(wCap, vec_w, vec_h)
     # vecVecIndexBinInSub = [collect(1:sum(vecNumCol[1:2]))]
     return (vec_c, mat_a, vec_b, vecVecIndexSub, numSub, m_mat_h, vecRowMatD, vecVecIndexBinInSub)
 end
+
+
+function getData()
+    ## Test the algorihtm using SSCFLP
+    vec_c = - [292  453  359  219  268  736  291  443  403  498  400  967]
+    mat_a = [
+        Matrix{Float64}(I, 5, 5) zeros(5, 1) Matrix{Float64}(I, 5, 5) zeros(5, 1);
+        14 20 6 16 10 -43 zeros(1, 6);
+        zeros(1, 6) 14 20 6 16 10 -43
+        ]
+    vec_b = hcat([ones(5,1); 0; 0])
+    vecVecIndexSub = [collect(1:6), collect(7:12)]
+    numSub = 2
+    m_mat_h = 5
+    vecRowMatD = [1, 1]
+    vecVecIndexBinInSub = [collect(1:6), collect(1:6)]
+    return (vec_c, mat_a, vec_b, vecVecIndexSub, numSub, m_mat_h, vecRowMatD, vecVecIndexBinInSub)
+end

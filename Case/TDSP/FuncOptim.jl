@@ -15,11 +15,10 @@ function doOptim(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, epsi
         (vec_pi, vec_kappa, obj_master) = solveMas(modMas, vecConsRef, vecConsConvex)
         done = true
         ## Print the result
+        println("--------------------------------------------------------------------------------")
+        println("$(iter)-th iteration. obj_master = $(obj_master).")
         println("vec_pi = $(vec_pi)\n",
                 "vec_kappa = $(vec_kappa)")
-        println("--------------------------------------------------------------------------------")
-        println("$(iter)-th iteration. obj_master = $(obj_master).\n",
-                "--------------------------------------------------------------------------------")
         ## Column Generation
         costReduceBest = -1
         for k = 1: length(vecModelSub)
