@@ -17,7 +17,7 @@ function setModelMas(mat_e, vec_b, num_sub, gurobi_env)
     # Remember to consider if we need to maximize or minimize
     @objective(modMas, Max, sum(- 1e6 * vecLambda[j] for j = 1: K) )
     # remember to change "==" if your master-problem uses a different type of constraints!
-    @constraint(modMas, vecConsRef[i = 1: m_e], sum(vec_p[i] * vecLambda[j] for j = 1: K) == vec_p[i])
+    @constraint(modMas, vecConsRef[i = 1: m_e], sum(vec_p[i] * vecLambda[j] for j = 1: K) <= vec_p[i])
     @constraint(modMas, vecConsConvex[k = 1: num_sub], sum(vecLambda[j] for j = 1: K) == 1)
     return (modMas, vecConsRef, vecConsConvex, vecLambda)
 end

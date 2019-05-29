@@ -15,13 +15,14 @@ mutable struct ModelSub
 end
 
 
-function setVariableSub(modSub::JuMP.Model, mat_d, vec_q)
+function setVariableSub(modSub::JuMP.Model, mat_d, vec_q, vecIndexBin)
     (m_d, n_d) = size(mat_d)
-    @variable(modSub, vec_x[1: n_d] >= 0, Bin)
+    @variable(modSub, vec_x[1:n_d] >= 0, Int)  # , Bin
+    @constraint(modSub, vec_x[vecIndexBin] .<= 1)
     # objective is not here. We define once dual variables become known
     @objective(modSub, Max, 0)
     # remember to change "<=" if your sub-problem uses a different type of constraints!
-    @constraint(modSub, cons[i = 1: m_d], sum(mat_d[i, j] * vec_x[j] for j = 1: n_d) <= vec_q[i])
+    @constraint(modSub, cons[i = 1: m_d], sum(mat_d[i, j] * vec_x[j] for j = 1:n_d) <= vec_q[i])
     return vec_x
 end
 
@@ -43,20 +44,25 @@ end
 
 
 function setModelSub(
-    numSub, matIndexSub, m_mat_h, vec_c, mat_a, vec_b, vecRowMatD, gurobi_env, numXInSub,
+    numSub, vecVecIndexSub, m_mat_h, vec_c, mat_a, vec_b, vecRowMatD, gurobi_env, vecVecIndexBinInSub,
     wheBranch, vecWhiSub, vecWhiVar, vecWhiBranch
     )
     vecModelSub = Vector{ModelSub}(undef, numSub)
     for k = 1: numSub
-        vecIndexInt1 = collect(((k - 1) * numXInSub + 1):(k * numXInSub))
-        vecIndexInt2 =  collect(convert(Int8, (m_mat_h + k)):convert(Int8, (m_mat_h + k + vecRowMatD[k] - 1)))
-        # println(typeof(vecIndexInt1), typeof(vecIndexInt2))
+        vecIndexCol = vecVecIndexSub[k]
+        if k == 1
+            vecIndexRow = collect(convert(Int64, (m_mat_h + 1)):convert(Int64, (m_mat_h + vecRowMatD[1])))
+        else
+            vecIndexRow = collect(convert(Int64, (m_mat_h + sum(vecRowMatD[1:(k-1)]) + 1)):
+                convert(Int64, (m_mat_h + sum(vecRowMatD[1:k]))))
+        end
+        # println("typeof(vecIndexCol) = $(typeof(vecIndexCol)), typeof(vecIndexRow) = $(typeof(vecIndexRow)).")
         vecModelSub[k] = ModelSub(
             Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env)),                          # mod
-            mat_a[1: m_mat_h, vecIndexInt1],                                              # mat_e, matIndexSub[k, :]
-            vec_c[vecIndexInt1],                                                          # vec_l
-            hcat(mat_a[vecIndexInt2, vecIndexInt1]),   # mat_d
-            vec_b[vecIndexInt2, 1],                         # vec_q
+            mat_a[1: m_mat_h, vecIndexCol],                                              # mat_e,
+            vec_c[vecIndexCol],                                                          # vec_l
+            hcat(mat_a[vecIndexRow, vecIndexCol]),   # mat_d
+            vec_b[vecIndexRow, 1],                         # vec_q
             0                                                                                  # vec_x
             )
     end
@@ -67,7 +73,8 @@ function setModelSub(
         end
     end
     for k = 1: numSub
-        vecModelSub[k].vec_x = setVariableSub(vecModelSub[k].mod, vecModelSub[k].mat_d, vecModelSub[k].vec_q)
+        vecModelSub[k].vec_x = setVariableSub(vecModelSub[k].mod, vecModelSub[k].mat_d, vecModelSub[k].vec_q,
+            vecVecIndexBinInSub[k])
     end
     return vecModelSub
 end

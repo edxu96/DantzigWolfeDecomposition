@@ -15,16 +15,16 @@ function doOptim(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, epsi
         (vec_pi, vec_kappa, obj_master) = solveMas(modMas, vecConsRef, vecConsConvex)
         done = true
         ## Print the result
-        # println("vec_pi = $(vec_pi)\n",
-        #         "vec_kappa = $(vec_kappa)")
-        # println("--------------------------------------------------------------------------------\n",
-        #         "$(iter)-th iteration. obj_master = $(obj_master).\n",
-        #         "--------------------------------------------------------------------------------")
+        println("vec_pi = $(vec_pi)\n",
+                "vec_kappa = $(vec_kappa)")
+        println("--------------------------------------------------------------------------------")
+        println("$(iter)-th iteration. obj_master = $(obj_master).\n",
+                "--------------------------------------------------------------------------------")
         ## Column Generation
         costReduceBest = -1
         for k = 1: length(vecModelSub)
             (costReduce, vec_x_result) = solveSub(vecModelSub[k], vec_pi, vec_kappa[k])
-            # println("Reduced cost of $(k)-th sub model is $costReduce.")
+            println("Reduced cost of $(k)-th sub model is $costReduce.")
             if costReduce > costReduceBest
                 costReduceBest = costReduce
             end
@@ -51,11 +51,15 @@ function doOptim(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, epsi
 end
 
 
-function getVecStrNameVar(numSub, numXInSub)
-    vecStrNameVar = Vector{String}(undef, numSub * numXInSub)
+function getVecStrNameVar(numSub, vecVecIndexSub)
+    vecNumXInSub = zeros(numSub)
+    for i = 1: numSub
+        vecNumXInSub[i] = length(vecVecIndexSub[i])
+    end
+    vecStrNameVar = Vector{String}(undef, convert(Int64, sum(vecNumXInSub)))
     idx = 1
     for i = 1: numSub
-        for j = 1: numXInSub
+        for j = 1: vecNumXInSub[i]
             vecStrNameVar[idx] = "x_{$(i),$(j)}"
             idx += 1
         end
@@ -86,4 +90,19 @@ function printResult(vecLambdaResult, extremePointForSub, extremePoints, vecStrN
             end
         end
     end
+end
+
+
+function solveLP(vec_c, mat_a, vec_b, vecVecIndexBinInSub)
+    println("################################################################################") ########################
+    num_x = length(vec_c)
+    model = Model(solver = GurobiSolver())
+    @variable(model, vec_x[1:num_x] >= 0, Int)
+    @objective(model, Max, sum(vec_c[i] * vec_x[i] for i = 1:num_x))
+    @constraint(model, mat_a * vec_x .<= vec_b)
+    @constraint(model, vec_x[vecVecIndexBinInSub[1]] .<= 1)
+    solve(model)
+    println("**** Objective value IP: $(getobjectivevalue(model))")
+    println("**** x = $(getvalue(vec_x))\n",
+            "#### End #######################################################################") ########################
 end
