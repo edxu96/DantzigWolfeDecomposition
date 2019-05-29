@@ -43,18 +43,21 @@ end
 
 
 function setModelSub(
-    numSub, indexSub, m_mat_h, vec_c, mat_a, vec_b, vecRowMatD, gurobi_env,
+    numSub, matIndexSub, m_mat_h, vec_c, mat_a, vec_b, vecRowMatD, gurobi_env, numXInSub,
     wheBranch, vecWhiSub, vecWhiVar, vecWhiBranch
     )
     vecModelSub = Vector{ModelSub}(undef, numSub)
     for k = 1: numSub
+        vecIndexInt1 = collect(((k - 1) * numXInSub + 1):(k * numXInSub))
+        vecIndexInt2 =  collect(convert(Int8, (m_mat_h + k)):convert(Int8, (m_mat_h + k + vecRowMatD[k] - 1)))
+        # println(typeof(vecIndexInt1), typeof(vecIndexInt2))
         vecModelSub[k] = ModelSub(
-            Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env)),                     # mod
-            mat_a[1: m_mat_h, indexSub[k]],                                              # mat_e
-            vec_c[indexSub[k]],                                                          # vec_l
-            hcat(mat_a[(m_mat_h + k):(m_mat_h + k + vecRowMatD[k] - 1), indexSub[k]]),   # mat_d
-            vec_b[(m_mat_h + k):(m_mat_h + k + vecRowMatD[k] - 1), 1],                    # vec_q
-            0                                                                             # vec_x
+            Model(solver = GurobiSolver(OutputFlag = 0, gurobi_env)),                          # mod
+            mat_a[1: m_mat_h, vecIndexInt1],                                              # mat_e, matIndexSub[k, :]
+            vec_c[vecIndexInt1],                                                          # vec_l
+            hcat(mat_a[vecIndexInt2, vecIndexInt1]),   # mat_d
+            vec_b[vecIndexInt2, 1],                         # vec_q
+            0                                                                                  # vec_x
             )
     end
     # Set Branch

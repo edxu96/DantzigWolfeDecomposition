@@ -15,16 +15,16 @@ function doOptim(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, epsi
         (vec_pi, vec_kappa, obj_master) = solveMas(modMas, vecConsRef, vecConsConvex)
         done = true
         ## Print the result
-        println("vec_pi = $(vec_pi)\n",
-                "vec_kappa = $(vec_kappa)")
-        println("--------------------------------------------------------------------------------\n",
-                "$(iter)-th iteration. obj_master = $(obj_master).\n",
-                "--------------------------------------------------------------------------------")
+        # println("vec_pi = $(vec_pi)\n",
+        #         "vec_kappa = $(vec_kappa)")
+        # println("--------------------------------------------------------------------------------\n",
+        #         "$(iter)-th iteration. obj_master = $(obj_master).\n",
+        #         "--------------------------------------------------------------------------------")
         ## Column Generation
         costReduceBest = -1
         for k = 1: length(vecModelSub)
             (costReduce, vec_x_result) = solveSub(vecModelSub[k], vec_pi, vec_kappa[k])
-            println("Reduced cost of $(k)-th sub model is $costReduce.")
+            # println("Reduced cost of $(k)-th sub model is $costReduce.")
             if costReduce > costReduceBest
                 costReduceBest = costReduce
             end
@@ -39,7 +39,7 @@ function doOptim(vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, epsi
         end
         ##
         iter += 1
-        println("best reduced cost is $costReduceBest")
+        # println("best reduced cost is $costReduceBest")
     end
     ## 5,  Print the Result
     println("################################################################################\n", ######################
@@ -64,11 +64,12 @@ function getVecStrNameVar(numSub, numXInSub)
 end
 
 
-function printResult(vecLambdaResult, extremePointForSub, extremePoints, vecStrNameVar, indexSub)
+function printResult(vecLambdaResult, extremePointForSub, extremePoints, vecStrNameVar, matIndexSub)
     # compute values of original variables
     origVarValSub = []
-    for s = 1: length(indexSub)
-        push!(origVarValSub, zeros(length(indexSub[s])))
+    numSub = size(matIndexSub)[1]
+    for s = 1:numSub
+        push!(origVarValSub, zeros(length(matIndexSub[s,:])))
     end
     for p = 1: length(vecLambdaResult)
         if vecLambdaResult[p] > 0.000001
@@ -77,11 +78,11 @@ function printResult(vecLambdaResult, extremePointForSub, extremePoints, vecStrN
             origVarValSub[extremePointForSub[p]] += vecLambdaResult[p] * extremePoints[p]
         end
     end
-    for s = 1: length(indexSub)
+    for s = 1:numSub
         #println("var val for sub problem $s: $(origVarValSub[s])")
         for t = 1: length(origVarValSub[s])
             if abs(origVarValSub[s][t]) > 0.000001
-                println("$(vecStrNameVar[indexSub[s][t]]) = $(origVarValSub[s][t])")
+                println("$(vecStrNameVar[matIndexSub[s, t]]) = $(origVarValSub[s][t])")
             end
         end
     end

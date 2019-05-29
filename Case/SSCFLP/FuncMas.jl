@@ -54,7 +54,7 @@ function addColToMaster(modMas::JuMP.Model, modSub::ModelSub, vec_x_result, vecC
     push!(vec_consTouched, consConvex)
     push!(vals, 1)
     objCoef = sum(modSub.vec_l[j] * vec_x_result[j] for j = 1: n)
-    println("objCoef = $objCoef.")
+    # println("objCoef = $objCoef.")
     @variable(
         modMas,
         lambdaNew >= 0,                     # New variable to be added

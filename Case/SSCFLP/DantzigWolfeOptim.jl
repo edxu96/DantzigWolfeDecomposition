@@ -1,8 +1,8 @@
 # Dantzig-Wolfe Decomposition
 # Edward J. Xu
 # 2019.5.28
-# module DantzigWolfeOptim
-# export doDantzigWolfeOptim
+module DantzigWolfeOptim
+export doDantzigWolfeOptim
 ########################################################################################################################
 using JuMP
 # using CPLEX
@@ -15,16 +15,16 @@ include("FuncOptim.jl")
 
 
 function doDantzigWolfeOptim(
-        vec_c, mat_a, vec_b, indexSub, numSub, numXInSub, m_mat_h, vecRowMatD,
+        vec_c, mat_a, vec_b, matIndexSub, numSub, numXInSub, m_mat_h, vecRowMatD,
         wheBranch, vecWhiSub, vecWhiVar, vecWhiBranch
         )
+    timeStart = time()
     epsilon = 0.00001
     gurobi_env = Gurobi.Env()
-    timeStart = time()
     vecStrNameVar = getVecStrNameVar(numSub, numXInSub)
     println("#### 1/4,  Set vecModelSub #####################################################") ########################
     vecModelSub = setModelSub(
-        numSub, indexSub, m_mat_h, vec_c, mat_a, vec_b, vecRowMatD, gurobi_env,
+        numSub, matIndexSub, m_mat_h, vec_c, mat_a, vec_b, vecRowMatD, gurobi_env, numXInSub,
         wheBranch, vecWhiSub, vecWhiVar, vecWhiBranch
         )
     println("#### 2/4,  Set modelMas ########################################################") ########################
@@ -34,9 +34,9 @@ function doDantzigWolfeOptim(
         vecModelSub, modMas, vecConsRef, vecConsConvex, vecLambda, epsilon
         )
     println("#### 4/4,  Print Result ########################################################") ########################
-    printResult(vecLambdaResult, extremePointForSub, extremePoints, vecStrNameVar, indexSub)
+    # printResult(vecLambdaResult, extremePointForSub, extremePoints, vecStrNameVar, matIndexSub)
     println("################################################################################",
-            "Elapsed time is $(time() - timeStart) seconds.")
+            "#### Elapsed time is $(time() - timeStart) seconds.")
     println("#### End #######################################################################") ########################
 end
 
