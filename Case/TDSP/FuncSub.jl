@@ -18,7 +18,7 @@ end
 function setVariableSub(modSub::JuMP.Model, mat_d, vec_q, vecIndexBin)
     (m_d, n_d) = size(mat_d)
     @variable(modSub, vec_x[1:n_d] >= 0, Int)  # , Bin
-    @constraint(modSub, vec_x[vecIndexBin] .<= 1)
+    # @constraint(modSub, vec_x[vecIndexBin] .<= 1)
     # objective is not here. We define once dual variables become known
     @objective(modSub, Max, 0)
     # remember to change "<=" if your sub-problem uses a different type of constraints!
