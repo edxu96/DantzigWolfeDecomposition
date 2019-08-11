@@ -1,4 +1,8 @@
+
 # DantzigWolfeDecomposition
+Dantzig-Wolfe series of decomposition and reformulation algorithm to solve MILP
+
+This repo has been archived On Aug 11, 2019. New update will be made to [edxu96/MatrixOptim](https://github.com/edxu96/MatrixOptim), which is the aggregation of robust optimization and decomposition.
 
 ## 1,  Introduction
 
